@@ -18,9 +18,10 @@
 package totp
 
 import (
+	"io"
+
 	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/hotp"
-	"io"
 
 	"crypto/rand"
 	"encoding/base32"
@@ -92,9 +93,7 @@ func GenerateCodeCustom(secret string, t time.Time, opts ValidateOpts) (passcode
 	return passcode, nil
 }
 
-// ValidateCustom validates a TOTP given a user specified time and custom options.
-// Most users should use Validate() to provide an interpolatable TOTP experience.
-func ValidateCustom(passcode string, secret string, t time.Time, opts ValidateOpts) (bool, error) {
+func ValidateWithTime(passcode string, secret string, t time.Time, opts ValidateOpts) (bool, uint64, error) {
 	if opts.Period == 0 {
 		opts.Period = 30
 	}
@@ -115,15 +114,22 @@ func ValidateCustom(passcode string, secret string, t time.Time, opts ValidateOp
 		})
 
 		if err != nil {
-			return false, err
+			return false, 0, err
 		}
 
 		if rv == true {
-			return true, nil
+			return true, counter, nil
 		}
 	}
 
-	return false, nil
+	return false, 0, nil
+}
+
+// ValidateCustom validates a TOTP given a user specified time and custom options.
+// Most users should use Validate() to provide an interpolatable TOTP experience.
+func ValidateCustom(passcode string, secret string, t time.Time, opts ValidateOpts) (bool, error) {
+	status, _, err := ValidateWithTime(passcode, secret, t, opts)
+	return status, err
 }
 
 // GenerateOpts provides options for Generate().  The default values

@@ -118,6 +118,36 @@ func TestValidateSkew(t *testing.T) {
 	}
 }
 
+func TestValidateSkewWithCounter(t *testing.T) {
+	secSha1 := base32.StdEncoding.EncodeToString([]byte("12345678901234567890"))
+	type tcw struct {
+		tc
+		counter int
+	}
+	tests := []tcw{
+		{tc{29, "94287082", otp.AlgorithmSHA1, secSha1}, 1},
+		{tc{59, "94287082", otp.AlgorithmSHA1, secSha1}, 1},
+		{tc{61, "94287082", otp.AlgorithmSHA1, secSha1}, 1},
+		{tc{1111111109, "07081804", otp.AlgorithmSHA1, secSha1}, 37037036},
+	}
+
+	for _, tcw := range tests {
+		tx := tcw.tc
+		valid, counter, err := ValidateWithTime(tx.TOTP, tx.Secret, time.Unix(tx.TS, 0).UTC(),
+			ValidateOpts{
+				Digits:    otp.DigitsEight,
+				Algorithm: tx.Mode,
+				Skew:      1,
+			})
+		//fmt.Printf("totp=%s mode=%v ts=%v counter=%v\n", tx.TOTP, tx.Mode, tx.TS, counter)
+		require.NoError(t, err,
+			"unexpected error totp=%s mode=%v ts=%v counter=%v", tx.TOTP, tx.Mode, tx.TS, counter)
+		require.True(t, valid,
+			"unexpected totp failure totp=%s mode=%v ts=%v counter=%v", tx.TOTP, tx.Mode, tx.TS, counter)
+		require.Equal(t, counter, tcw.counter, "invalid counter found otp=%s mode=%v ts=%v counter=%v", tx.TOTP, tx.Mode, tx.TS, counter)
+	}
+}
+
 func TestGenerate(t *testing.T) {
 	k, err := Generate(GenerateOpts{
 		Issuer:      "SnakeOil",
