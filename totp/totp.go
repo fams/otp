@@ -93,7 +93,7 @@ func GenerateCodeCustom(secret string, t time.Time, opts ValidateOpts) (passcode
 	return passcode, nil
 }
 
-func ValidateWithTime(passcode string, secret string, t time.Time, opts ValidateOpts) (bool, uint64, error) {
+func ValidateWithTime(passcode string, secret string, t time.Time, opts ValidateOpts) (uint64, error) {
 	if opts.Period == 0 {
 		opts.Period = 30
 	}
@@ -114,22 +114,22 @@ func ValidateWithTime(passcode string, secret string, t time.Time, opts Validate
 		})
 
 		if err != nil {
-			return false, 0, err
+			return 0, err
 		}
 
 		if rv == true {
-			return true, counter, nil
+			return counter, nil
 		}
 	}
 
-	return false, 0, nil
+	return 0, nil
 }
 
 // ValidateCustom validates a TOTP given a user specified time and custom options.
 // Most users should use Validate() to provide an interpolatable TOTP experience.
 func ValidateCustom(passcode string, secret string, t time.Time, opts ValidateOpts) (bool, error) {
-	status, _, err := ValidateWithTime(passcode, secret, t, opts)
-	return status, err
+	counter, err := ValidateWithTime(passcode, secret, t, opts)
+	return (counter > 0), err
 }
 
 // GenerateOpts provides options for Generate().  The default values
